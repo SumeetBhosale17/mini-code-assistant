@@ -1,0 +1,15 @@
+# generated RAG index — rebuilt from source any time, never commit it
+.rag_index/
+
+# python
+__pycache__/
+*.py[cod]
+venv/
+.venv/
+
+# local secrets — your GEMINI_API_KEY lives here, never commit it
+.env
+
+CLAUDE.md
+
+docs/interview-qa.md
