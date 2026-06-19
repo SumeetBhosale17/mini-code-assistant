@@ -9,7 +9,3 @@ venv/
 
 # local secrets — your GEMINI_API_KEY lives here, never commit it
 .env
-
-CLAUDE.md
-
-docs/interview-qa.md
