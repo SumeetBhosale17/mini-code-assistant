@@ -9,3 +9,7 @@ venv/
 
 # local secrets — your GEMINI_API_KEY lives here, never commit it
 .env
+
+# uv lockfile — incidental artifact of `uv run` in the pyright hook.
+# Deps are managed via requirements*.txt, so this locks nothing meaningful.
+uv.lock
