@@ -1,4 +1,4 @@
-# RAG Code Assistant — Interview Q&A
+# RAG Code Assistant — Concepts & Deep Dives
 
 > Living document. Each concept includes: the question, the answer, and the *justification* (why it matters).
 
@@ -257,6 +257,67 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 ---
 
+## Section 9: Chunker — Implementation Deep Dive (stage 1)
+
+> Builds on Section 2. Section 2 is *why* AST chunking; this is *how* `src/chunker.py` actually does it.
+
+### Q16. Mechanically, how does the chunker turn a file into chunks?
+
+**Answer:**
+1. `tree = ast.parse(source)` produces a `Module` node whose `.body` is the list of top-level statements.
+2. Iterate `tree.body`; keep nodes that are `ast.FunctionDef`, `ast.AsyncFunctionDef`, or `ast.ClassDef`.
+3. Each such node exposes `.name`, `.lineno` (1-based start), `.end_lineno` (1-based end, Python ≥3.8), and `.decorator_list`.
+4. Slice the chunk out of the *original text*: `source.splitlines()[start-1 : end]` (the `-1` converts a 1-based line number to a 0-based index).
+5. Wrap it in a `CodeChunk(content, file_path, start_line, chunk_type, name)`.
+
+**Justification:** The AST gives exact, reliable boundaries — no regex, no guessing where a function ends. `end_lineno` is the key: it turns "grab the whole function" into a slice, not a re-parse.
+
+---
+
+### Q17. Why slice the raw source instead of `ast.unparse(node)`?
+
+**Answer:** `ast.unparse()` regenerates source *from the tree* — but the AST does not store comments or original formatting (comments aren't part of the abstract syntax). Unparsing would silently drop every comment and normalize whitespace/quotes. We slice the original text so comments, docstrings, blank lines, and exact style survive into the chunk.
+
+**Justification:** The chunk is both (a) what we embed — and real comments carry semantic signal — and (b) what we show the user as a citation. We want the code *as written*, not a reconstruction. The AST is for *locating*, not *reproducing*.
+
+---
+
+### Q18. How are decorators handled, and why does it matter?
+
+**Answer:** A decorated function's `node.lineno` points at the `def` line, **not** the `@decorator` above it. The decorators live in `node.decorator_list`, each with its own `lineno`. We start the chunk at `decorator_list[0].lineno` when decorators exist, else `node.lineno`.
+
+**Justification:** `@app.route("/login")` or `@staticmethod` is essential context — it often tells you *what the function is* (a route handler, a fixture, a cached call). Cutting it off strips meaning that both the embedding and the LLM need.
+
+---
+
+### Q19. Why iterate `tree.body` (top-level only) instead of `ast.walk()` (every node)?
+
+**Answer:** `ast.walk()` yields *every* node recursively — so a class's methods and any nested functions would each become their own chunk **in addition to** the class chunk that already contains them. That's duplicated, overlapping content. Iterating `tree.body` takes only top-level definitions, so a class becomes exactly one chunk (methods included).
+
+**Justification:** Overlapping chunks waste index space and let near-duplicates crowd out the top-k. The tradeoff: a very large class is one big chunk — acceptable now; revisit with per-method splitting only if classes get unwieldy.
+
+---
+
+### Q20. What are the chunker's edge cases and deliberate blind spots?
+
+**Answer:**
+- **Unparseable file** (syntax error, Python 2): `ast.parse` raises `SyntaxError` → we catch it and return `[]`, skipping the file instead of crashing the whole index build.
+- **Module-level code** (imports, top-level constants, script body): not captured — only functions/classes. So "where is `CONFIG` defined?" can miss.
+- **Leading `#` comments above a def:** not captured. The AST tracks decorators but not comments, so a comment block directly above a function is dropped. (Docstrings *are* captured — they live *inside* the body, between `def` and `end_lineno`.)
+- **Non-Python files:** `ast` is Python-only — out of scope (other languages need tree-sitter).
+
+**Justification:** Retrieval can only surface what chunking captured. Knowing these blind spots tells you the failure boundary *before* you debug a "why didn't it find X" later.
+
+---
+
+### Q21. Why is `chunk_source(source, file_path)` a pure function (no file IO)?
+
+**Answer:** It takes a string and returns chunks — it never touches the disk. File reading lives in `chunk_file`; directory walking in `iter_python_files`.
+
+**Justification:** Purity makes the core trivially testable: feed it an inline source string and assert on the result — no temp files, fast, deterministic. The IO stays in thin wrappers around the pure core. This is exactly why the unit tests cover decorators, classes, and syntax errors in a few lines each.
+
+---
+
 ## Appendix A — Dev Tooling, Testing & Git Workflow (reference)
 
 > Engineering-practice notes for this repo (not RAG concepts). Reflects the config actually in use.
@@ -356,4 +417,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 2 — stage 1 (AST chunker), dev tooling & git workflow*
+*Last updated: Session 3 — stage 1 chunker implementation deep-dive (Q16–Q21)*
