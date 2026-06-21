@@ -88,7 +88,8 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 
 - Stage 4: `src/retriever.py` (`retrieve(question, index, chunks, k)` → `list[RetrievalResult]`;
   embeds query (same model), `index.search` top-k, skips `-1` padding, row-order join back to
-  chunks), `tests/unit/test_retriever.py`, deep-dive §12. `config.TOP_K` now live.
+  chunks; drops hits below `SIMILARITY_THRESHOLD`), `tests/unit/test_retriever.py`, deep-dive §12.
+  `config.TOP_K` + `SIMILARITY_THRESHOLD` now live.
 
 - Stage 5: `src/llm.py` (`build_prompt` pure → `answer` calls Gemini with `SYSTEM_INSTRUCTION`
   grounding; empty-results short-circuit; cached client; key from `.env` via `python-dotenv`),
@@ -98,8 +99,9 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   online load→retrieve→answer→print with sources), `tests/unit/test_cli.py`. User-facing output
   (`print`) lives here, not in the library.
 
-**Project complete.** Possible follow-ups (not started): optional Ollama provider switch,
-`tests/integration/` end-to-end test, ANN index + incremental indexing for scale.
+**Project complete**, plus extras: similarity threshold + end-to-end integration tests.
+Possible follow-ups (not started): optional Ollama provider switch, ANN index + incremental
+indexing for scale.
 
 **Decisions made along the way:**
 - **LLM model:** `gemini-2.0-flash` returns `429 limit: 0` (no free-tier quota on this key) —
@@ -111,8 +113,9 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   (`uv run pyright`), so `uv.lock` is an incidental artifact and is gitignored.
 - **Tooling:** `ruff` (lint) + `ruff format` + `pyright` (types) + `pytest`, wired via
   `pre-commit`. Tool config lives in `pyproject.toml` (config only — no build-system/packaging).
-- **Tests:** `tests/unit/` now; `tests/integration/` later for the full pipeline. Add
-  `importmode = "importlib"` to the pytest config when integration tests arrive.
+- **Tests:** `tests/unit/` (per-module) + `tests/integration/` (end-to-end, no LLM call).
+  Import mode set via `addopts = "--import-mode=importlib"` so `unit/` and `integration/` can
+  share file basenames. (NB: pytest has no `importmode` ini key — use the `addopts` flag.)
 - **Git:** branch per stage, **merge commits (no squash)**, one PR per stage — always
   provide a ready-to-paste PR title + body. Always `git checkout main && git pull` before
   branching for the next stage.
