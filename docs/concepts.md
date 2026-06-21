@@ -370,6 +370,58 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 ---
 
+## Section 11: Vector Store — Implementation Deep Dive (stage 3)
+
+> Builds on Section 4. Section 4 is *why* a vector DB / FAISS / `IndexFlatIP`; this is *how* `src/index_store.py` builds, persists, and reloads it.
+
+### Q28. What two files make up a persisted index, and why two?
+
+**Answer:** The FAISS index (`config.INDEX_FILE`, a binary holding only the vectors) and a JSON file (`config.METADATA_FILE`, holding the `CodeChunk` records). FAISS stores float vectors and integer ids — it knows nothing about your file paths or code text. So the human-meaningful data lives separately, as JSON.
+
+**Justification:** Separation of concerns — FAISS does the math, JSON holds the meaning. They're joined at query time by **row position**.
+
+---
+
+### Q29. What is the ordering contract, and why is it the invariant of this stage?
+
+**Answer:** `index.add()` assigns ids `0..N-1` in insertion order, and a search returns those ids. The metadata is saved in the **same order**, so `chunks[i]` describes vector row `i`. That row number is the only link between the two files. Reorder or filter one without doing the identical operation to the other, and every result is mislabeled.
+
+**Justification:** This is *silent* corruption — no crash, just wrong code returned for a given vector. Treat the vectors and the chunk list as a single unit that always moves together.
+
+---
+
+### Q30. Why persist to disk at all — why not rebuild the index every run?
+
+**Answer:** Embedding the whole repo is the expensive offline step. Persisting (`faiss.write_index` + JSON dump) means answering a question only **loads** the index — it never re-embeds. This is the concrete boundary between the OFFLINE pipeline (chunk → embed → index, run on repo change) and the ONLINE pipeline (load → search → answer, run per question).
+
+**Justification:** Turns a multi-second embed into a sub-second load per session — and lets indexing and querying be separate commands (`--index` vs `--ask`).
+
+---
+
+### Q31. Why JSON for metadata instead of `pickle`?
+
+**Answer:** JSON is human-readable (open `metadata.json` and inspect it), **safe** (`pickle` executes arbitrary code on load — a real security risk), and portable. It's slightly larger/slower, which is irrelevant at our scale. `asdict(chunk)` serializes a `CodeChunk` to a dict; `CodeChunk(**d)` rebuilds it — which works because `CodeChunk` is a flat dataclass of JSON-native types.
+
+**Justification:** For small data and a learning project, readability + safety beat pickle's speed every time.
+
+---
+
+### Q32. How do `save_index` and `load_index` avoid path drift?
+
+**Answer:** Both derive their paths from `config.INDEX_FILE` / `config.METADATA_FILE` through a single `_paths()` helper. The filenames are defined once, so save and load **cannot disagree**. (This exact drift — one function writing `vectors.faiss` while the other read `vector.faiss` — was a real bug caught in review.)
+
+**Justification:** Single source of truth — the same principle as `config.EMBEDDING_MODEL` enforcing the same-model invariant in stage 2.
+
+---
+
+### Q33. Why `IndexFlatIP`, and how does `build_index` get the dimension?
+
+**Answer:** `IndexFlatIP` is a flat (exact, brute-force) inner-product index; on L2-normalized vectors, inner product **is** cosine similarity (invariant #2). The dimension comes from `vectors.shape[1]` — derived from the data itself, and equal to `config.EMBEDDING_DIM`. At our scale, exact search is plenty fast; ANN indexes (IVF/HNSW) only pay off at millions of vectors.
+
+**Justification:** The simplest correct choice — no recall loss, no tuning knobs.
+
+---
+
 ## Appendix A — Dev Tooling, Testing & Git Workflow (reference)
 
 > Engineering-practice notes for this repo (not RAG concepts). Reflects the config actually in use.
@@ -469,4 +521,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 4 — stage 2 embedder implementation deep-dive (Q22–Q27)*
+*Last updated: Session 5 — stage 3 vector-store implementation deep-dive (Q28–Q33)*

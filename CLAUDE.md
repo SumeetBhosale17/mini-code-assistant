@@ -75,13 +75,17 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 
 ## Progress & decisions (as built — keep current)
 
-**Stage status:** ✅ Stage 1 (chunker) + ✅ Stage 2 (embedder) complete.
+**Stage status:** ✅ Stage 1 (chunker) + ✅ Stage 2 (embedder) + ✅ Stage 3 (index store) complete.
 - Stage 1: `src/chunker.py`, `src/config.py`, `tests/unit/test_chunker.py`, deep-dive §9.
 - Stage 2: `src/embedder.py` (sentence-transformers `all-MiniLM-L6-v2`, L2-normalized,
   cached model), `tests/unit/test_embedder.py`, deep-dive §10. `config.EMBEDDING_MODEL`
   + `EMBEDDING_DIM` now live — both invariants implemented here.
+- Stage 3: `src/index_store.py` (FAISS `IndexFlatIP`, persisted to `.rag_index/` as
+  `vectors.faiss` + `metadata.json`, joined by row order via a shared `_paths` helper),
+  `tests/unit/test_index_store.py`, deep-dive §11. `config.INDEX_DIR/INDEX_FILE/METADATA_FILE`
+  now live.
 
-**Next: stage 3 (FAISS index store).**
+**Next: stage 4 (retriever — `index.search` + top-k).**
 
 **Decisions made along the way:**
 - **Deps:** `requirements.txt` (runtime) + `requirements-dev.txt` (dev). `uv` is *not* the
@@ -91,8 +95,9 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   `pre-commit`. Tool config lives in `pyproject.toml` (config only — no build-system/packaging).
 - **Tests:** `tests/unit/` now; `tests/integration/` later for the full pipeline. Add
   `importmode = "importlib"` to the pytest config when integration tests arrive.
-- **Git:** branch per stage, **merge commits (no squash)**, one PR per stage. Always
-  `git checkout main && git pull` before branching for the next stage.
+- **Git:** branch per stage, **merge commits (no squash)**, one PR per stage — always
+  provide a ready-to-paste PR title + body. Always `git checkout main && git pull` before
+  branching for the next stage.
 - **Docs:** learning Q&A doc renamed `interview-qa.md` → `docs/concepts.md` (public repo).
   ⚠️ `README.md` still links to non-existent `docs/0X-….md` files — reconcile later (point
   them at `concepts.md` or create the files).
