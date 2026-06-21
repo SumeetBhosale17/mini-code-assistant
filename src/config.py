@@ -22,6 +22,10 @@ SKIP_DIRS: frozenset[str] = frozenset(
 EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"  # must be identical at index & query time
 EMBEDDING_DIM: int = 384  # all-MiniLM-L6-v2 output dim; keep in sync with the model
 
+# --- Stage 3: vector store --------------------------------------------------
+INDEX_DIR: str = ".rag_index"  # gitignored dir holding the row files below
+INDEX_FILE: str = "vector.faiss"  # the FAISS index
+METADATA_FILE: str = "metadata.json"  # chunk records, in the same row order
+
 # --- later stages (commented until then) ------------------------------------
-# INDEX_DIR: str = ".rag_index"
 # GEMINI_MODEL: str = "gemini-2.0-flash"
