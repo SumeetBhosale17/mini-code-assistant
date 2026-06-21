@@ -528,6 +528,24 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 ---
 
+## Section 14: Enhancements (post-completion)
+
+### Q46. Why add a similarity threshold, and where does it live?
+
+**Answer:** Without it, `retrieve` always returns the top-k — even for an off-topic question — so the LLM gets fed the "least irrelevant" chunks and may answer from noise. `retrieve` now drops any hit below `config.SIMILARITY_THRESHOLD`; if everything is filtered it returns `[]`, which flows into `answer`'s existing short-circuit → "No relevant code found." The check lives in the retriever (one place), reusing the empty-results path instead of adding a new branch.
+
+**Justification:** Lets the system say "I don't have this" instead of forcing a grounded-in-junk answer (§Q10, §Q13). Caveat: MiniLM cosine scores run low (relevant hits here were ~0.38–0.45), so the threshold is a blunt "reject clearly off-topic" tool, not a precision filter — keep it conservative (~0.3) and tune per corpus.
+
+---
+
+### Q47. Why an integration test on top of the unit tests?
+
+**Answer:** Unit tests check each module in isolation; `tests/integration/test_pipeline.py` runs the whole chain on a tiny throwaway repo — chunk → embed → build → save → load → retrieve — catching wiring bugs (the row-order join, path consistency, the offline/online handoff) that unit tests can't see. It deliberately stops before the Gemini call (no key, no quota, deterministic) and exercises the threshold + `answer([])` short-circuit instead. Pytest's import mode is set to `importlib` (`addopts = "--import-mode=importlib"`) so `unit/` and `integration/` can hold same-named files without clashing.
+
+**Justification:** The pieces passing individually doesn't prove they *compose* — the end-to-end test is that proof, and keeping it LLM-free keeps it fast and deterministic.
+
+---
+
 ## Appendix A — Dev Tooling, Testing & Git Workflow (reference)
 
 > Engineering-practice notes for this repo (not RAG concepts). Reflects the config actually in use.
@@ -627,4 +645,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 8 — project complete (stage 6 CLI); per-stage docs/0X landing pages added*
+*Last updated: Session 9 — enhancements: similarity threshold + integration tests (Q46–Q47)*
