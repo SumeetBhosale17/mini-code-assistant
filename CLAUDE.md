@@ -95,8 +95,9 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   `pre-commit`. Tool config lives in `pyproject.toml` (config only — no build-system/packaging).
 - **Tests:** `tests/unit/` now; `tests/integration/` later for the full pipeline. Add
   `importmode = "importlib"` to the pytest config when integration tests arrive.
-- **Git:** branch per stage, **merge commits (no squash)**, one PR per stage. Always
-  `git checkout main && git pull` before branching for the next stage.
+- **Git:** branch per stage, **merge commits (no squash)**, one PR per stage — always
+  provide a ready-to-paste PR title + body. Always `git checkout main && git pull` before
+  branching for the next stage.
 - **Docs:** learning Q&A doc renamed `interview-qa.md` → `docs/concepts.md` (public repo).
   ⚠️ `README.md` still links to non-existent `docs/0X-….md` files — reconcile later (point
   them at `concepts.md` or create the files).

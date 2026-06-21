@@ -24,7 +24,7 @@ EMBEDDING_DIM: int = 384  # all-MiniLM-L6-v2 output dim; keep in sync with the m
 
 # --- Stage 3: vector store --------------------------------------------------
 INDEX_DIR: str = ".rag_index"  # gitignored dir holding the row files below
-INDEX_FILE: str = "vector.faiss"  # the FAISS index
+INDEX_FILE: str = "vectors.faiss"  # the FAISS index
 METADATA_FILE: str = "metadata.json"  # chunk records, in the same row order
 
 # --- later stages (commented until then) ------------------------------------
