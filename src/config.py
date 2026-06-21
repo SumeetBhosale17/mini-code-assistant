@@ -30,5 +30,5 @@ METADATA_FILE: str = "metadata.json"  # chunk records, in the same row order
 # --- Stage 4: retrieval -----------------------------------------------------
 TOP_K: int = 5  # how many chunks to retrieve per query
 
-# --- later stages (commented until then) ------------------------------------
-# GEMINI_MODEL: str = "gemini-2.0-flash"
+# --- Stage 5: LLM -----------------------------------------------------------
+GEMINI_MODEL: str = "gemini-2.5-flash"

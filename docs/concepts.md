@@ -474,6 +474,58 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 ---
 
+## Section 13: LLM — Implementation Deep Dive (stage 5)
+
+> Builds on Section 6. Section 6 is *why* the LLM reasons over retrieved code and how RAG curbs hallucination; this is *how* `src/llm.py` does it.
+
+### Q40. How does the prompt ground the model — system instruction vs user content?
+
+**Answer:** Two separate pieces. The **system instruction** (`SYSTEM_INSTRUCTION`, passed via `GenerateContentConfig`) carries the *rules*: use ONLY the provided code, say you don't know if it's absent, cite `file:line`. The **user content** (`build_prompt` output) carries the *data*: the retrieved chunks as context + the question. Rules separate from data is how the API is designed and keeps grounding persistent.
+
+**Justification:** The system instruction is the anti-hallucination lever (§Q12) — it's what makes the model answer from your repo, not its training memory.
+
+---
+
+### Q41. How does `build_prompt` make citations possible?
+
+**Answer:** Each `RetrievalResult` becomes a labeled block — `# <file_path>:<start_line> (<chunk_type> <name>)` then the code. Those labels are the `file_path`/`start_line` carried all the way from stage 1. The model just echoes them back as citations.
+
+**Justification:** Citations aren't magic — they appear because you put `file:line` in the prompt. No labels → no citations.
+
+---
+
+### Q42. Why is `build_prompt` pure and separate from the API call?
+
+**Answer:** It's `(question, results) → str` with no network or key, so you can unit-test the whole prompt shape offline. `answer` is the only impure part (the Gemini call).
+
+**Justification:** Same pure-core / thin-IO-shell pattern as `chunk_source` and `embed_texts` — testability, with the external dependency isolated in one function.
+
+---
+
+### Q43. Why short-circuit on empty results, and guard `response.text`?
+
+**Answer:** If retrieval returned nothing, `answer` returns a fixed message **without calling Gemini** — saving a (quota-limited) API call and refusing to answer ungrounded. And `response.text or "..."` guards the case where Gemini returns no text (e.g. a safety block), so the function never returns `None`.
+
+**Justification:** Don't spend a call — or risk a hallucinated answer — when there's no context; and always hand callers a real string.
+
+---
+
+### Q44. Why cache the client, and how is the API key handled safely?
+
+**Answer:** `_get_client` uses `lru_cache(maxsize=1)` → one client per process (like the embedding model), reused across questions. `load_dotenv()` pulls `GEMINI_API_KEY` from `.env` into `os.environ`; we validate it's present (clear error if not) and pass it explicitly. The secret lives only in `.env`/the environment — `config.py` holds the model *name*, never the key.
+
+**Justification:** Secrets stay out of source control, and the client isn't rebuilt per query.
+
+---
+
+### Q45. What did the `429 ... limit: 0` teach about depending on a hosted LLM?
+
+**Answer:** A `429 RESOURCE_EXHAUSTED` with `limit: 0` means the model has **no free-tier quota** on your key — not that you used it up, so retrying won't help. `gemini-2.0-flash` had `limit: 0`; switching `config.GEMINI_MODEL` to `gemini-2.5-flash` fixed it.
+
+**Justification:** Provider quotas/rate-limits are an operational reality separate from your code. Because the LLM is isolated behind `llm.py` + one config line, swapping the model (or even the provider, e.g. Ollama) is a one-line change, not a refactor.
+
+---
+
 ## Appendix A — Dev Tooling, Testing & Git Workflow (reference)
 
 > Engineering-practice notes for this repo (not RAG concepts). Reflects the config actually in use.
@@ -573,4 +625,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 6 — stage 4 retriever implementation deep-dive (Q34–Q39)*
+*Last updated: Session 7 — stage 5 LLM implementation deep-dive (Q40–Q45)*

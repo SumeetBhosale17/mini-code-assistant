@@ -9,3 +9,5 @@ faiss-cpu>=1.7.4
 google-genai>=0.3.0
 
 numpy
+
+python-dotenv
