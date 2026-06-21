@@ -75,7 +75,7 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 
 ## Progress & decisions (as built — keep current)
 
-**Stage status:** ✅ Stage 1 (chunker) + ✅ Stage 2 (embedder) + ✅ Stage 3 (index store) complete.
+**Stage status:** ✅ Stages 1–4 complete (chunker, embedder, index store, retriever).
 - Stage 1: `src/chunker.py`, `src/config.py`, `tests/unit/test_chunker.py`, deep-dive §9.
 - Stage 2: `src/embedder.py` (sentence-transformers `all-MiniLM-L6-v2`, L2-normalized,
   cached model), `tests/unit/test_embedder.py`, deep-dive §10. `config.EMBEDDING_MODEL`
@@ -85,7 +85,11 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   `tests/unit/test_index_store.py`, deep-dive §11. `config.INDEX_DIR/INDEX_FILE/METADATA_FILE`
   now live.
 
-**Next: stage 4 (retriever — `index.search` + top-k).**
+- Stage 4: `src/retriever.py` (`retrieve(question, index, chunks, k)` → `list[RetrievalResult]`;
+  embeds query (same model), `index.search` top-k, skips `-1` padding, row-order join back to
+  chunks), `tests/unit/test_retriever.py`, deep-dive §12. `config.TOP_K` now live.
+
+**Next: stage 5 (LLM — assemble prompt with retrieved chunks, call Gemini).**
 
 **Decisions made along the way:**
 - **Deps:** `requirements.txt` (runtime) + `requirements-dev.txt` (dev). `uv` is *not* the

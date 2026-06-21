@@ -422,6 +422,58 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 ---
 
+## Section 12: Retriever — Implementation Deep Dive (stage 4)
+
+> Builds on Section 5. Section 5 is *why* top-k retrieval and how to choose k; this is *how* `src/retriever.py` does it.
+
+### Q34. What does `index.search(query, k)` return?
+
+**Answer:** Two NumPy arrays, each shape `(n_queries, k)`: `scores` and `ids`. For a single query, `scores[0]` and `ids[0]` are length-`k`. `scores` are inner products = cosine (normalized vectors), sorted **descending** (best first). `ids` are row positions into the chunk list — or `-1` padding. Both arrays are always the same length, so `zip(ids[0], scores[0], strict=True)` is safe and self-documenting.
+
+**Justification:** You need both — `ids` to find the chunk, `scores` to rank, threshold, and report confidence.
+
+---
+
+### Q35. Why reshape the query vector to `(1, dim)`?
+
+**Answer:** `index.search` is batched — it expects a 2-D matrix of queries `(n_queries, dim)`. `embed_query` returns 1-D `(dim,)`, so `.reshape(1, -1)` makes it a batch of one; you then read row `[0]` of the results.
+
+**Justification:** One API handles 1 or many queries; we just pass a batch of one.
+
+---
+
+### Q36. Why must you skip `ids < 0`?
+
+**Answer:** When `k` exceeds the number of vectors in the index, FAISS fills the empty slots with `-1`. Doing `chunks[-1]` would silently return the **last** chunk — a wrong result with no error. So `if idx < 0: continue`.
+
+**Justification:** A classic silent bug. The index isn't always ≥ `k` (small repos, filtered indexes), so this must be handled, not assumed away.
+
+---
+
+### Q37. How does retrieval use the stage-3 row-order join?
+
+**Answer:** `search` returns row ids; `chunks[id]` fetches the `CodeChunk` stored at that row. This works only because `save_index` wrote `metadata.json` in the same order the vectors were added. Retrieval is where that contract pays off.
+
+**Justification:** A bare id is meaningless; the join turns "row 7, score 0.81" into "`connect_to_database` in `db.py`".
+
+---
+
+### Q38. Why is `retrieve` a pure function that takes `index` and `chunks` rather than loading them?
+
+**Answer:** The caller (the CLI) calls `load_index()` **once** per session, then asks many questions without reloading the index or re-reading metadata. Keeping `retrieve` free of IO also makes it deterministic and trivial to test (build a tiny index, call it).
+
+**Justification:** Loading is a one-time session cost; retrieval is per-query — don't fold the two together.
+
+---
+
+### Q39. Why return `RetrievalResult(chunk, score)` instead of just chunks?
+
+**Answer:** The score is needed downstream — to rank, to optionally drop weak matches (a `SIMILARITY_THRESHOLD` → "no relevant code found"), and to convey confidence in the final answer. Dropping it loses information you can't recover later.
+
+**Justification:** Carry the score into the LLM stage; it's cheap to keep and useful to have.
+
+---
+
 ## Appendix A — Dev Tooling, Testing & Git Workflow (reference)
 
 > Engineering-practice notes for this repo (not RAG concepts). Reflects the config actually in use.
@@ -521,4 +573,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 5 — stage 3 vector-store implementation deep-dive (Q28–Q33)*
+*Last updated: Session 6 — stage 4 retriever implementation deep-dive (Q34–Q39)*
