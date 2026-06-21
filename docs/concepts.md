@@ -534,7 +534,7 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 **Answer:** Without it, `retrieve` always returns the top-k — even for an off-topic question — so the LLM gets fed the "least irrelevant" chunks and may answer from noise. `retrieve` now drops any hit below `config.SIMILARITY_THRESHOLD`; if everything is filtered it returns `[]`, which flows into `answer`'s existing short-circuit → "No relevant code found." The check lives in the retriever (one place), reusing the empty-results path instead of adding a new branch.
 
-**Justification:** Lets the system say "I don't have this" instead of forcing a grounded-in-junk answer (§Q10, §Q13). Caveat: MiniLM cosine scores run low (relevant hits here were ~0.38–0.45), so the threshold is a blunt "reject clearly off-topic" tool, not a precision filter — keep it conservative (~0.3) and tune per corpus.
+**Justification:** Lets the system say "I don't have this" instead of forcing a grounded-in-junk answer (§Q10, §Q13). Caveat: MiniLM cosine scores run low — measured relevant hits land around **0.31–0.45**, clearly off-topic queries around **~0.1** — so the threshold is a blunt "reject clearly off-topic" tool, not a precision filter. Default is **0.2** (0.3 left almost no margin and dropped real answers); tune per corpus.
 
 ---
 
@@ -543,6 +543,14 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 **Answer:** Unit tests check each module in isolation; `tests/integration/test_pipeline.py` runs the whole chain on a tiny throwaway repo — chunk → embed → build → save → load → retrieve — catching wiring bugs (the row-order join, path consistency, the offline/online handoff) that unit tests can't see. It deliberately stops before the Gemini call (no key, no quota, deterministic) and exercises the threshold + `answer([])` short-circuit instead. Pytest's import mode is set to `importlib` (`addopts = "--import-mode=importlib"`) so `unit/` and `integration/` can hold same-named files without clashing.
 
 **Justification:** The pieces passing individually doesn't prove they *compose* — the end-to-end test is that proof, and keeping it LLM-free keeps it fast and deterministic.
+
+---
+
+### Q48. Why was the interactive REPL almost free to add?
+
+**Answer:** Because the expensive state is already load-once-friendly. The embedding model is `lru_cache`d, and `retrieve` is a **pure function over `(index, chunks)`** — so the CLI can `load_index()` *once*, then loop, calling `retrieve` + `answer` per question with the cached model. One-shot `--ask` reloads everything per invocation; the REPL just moves the load **outside** the loop. No new machinery — `run_chat` is ~15 lines plus graceful exit on `exit`/`quit`/Ctrl-D/Ctrl-C.
+
+**Justification:** Decisions made earlier for *testability and cleanliness* (a pure retriever, cached singletons) turned out to be the exact thing that made a new *feature* trivial. That's the payoff of small, well-separated modules.
 
 ---
 
@@ -645,4 +653,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 9 — enhancements: similarity threshold + integration tests (Q46–Q47)*
+*Last updated: Session 10 — interactive CLI session / REPL (Q48); bumped to v0.2.0*

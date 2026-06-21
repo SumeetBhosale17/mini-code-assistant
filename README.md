@@ -67,7 +67,10 @@ pip install -r requirements.txt
 # Index a repository (run once)
 python -m src.cli --index ./path/to/your/repo
 
-# Ask questions
+# Interactive session — ask many questions (loads the model + index once)
+python -m src.cli
+
+# Or a one-shot question
 python -m src.cli --ask "where is the database connection initialized?"
 ```
 
@@ -76,6 +79,6 @@ python -m src.cli --ask "where is the database connection initialized?"
 ```
 src/        one module per pipeline stage
 docs/       why/how/when/what deep dive per stage
-tests/      unit tests (start with the chunker)
+tests/      unit (per-module) + integration (end-to-end) tests
 .rag_index/ generated index (gitignored)
 ```
