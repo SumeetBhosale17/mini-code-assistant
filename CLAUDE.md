@@ -61,7 +61,7 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 - Python 3.13+ (pinned via `requires-python` in `pyproject.toml`)
 - `sentence-transformers` — embedding model `all-MiniLM-L6-v2` (384-dim, ~90MB, fast)
 - `faiss-cpu` — vector index (`IndexFlatIP` for this scale; exact search is fine)
-- `google-genai` — LLM, model string `gemini-2.0-flash` (Google Gemini free tier; no budget)
+- `google-genai` — LLM, model string `gemini-2.5-flash` (Google Gemini free tier; no budget)
 - API key from env var `GEMINI_API_KEY` — never hardcode secrets. Free key (no card): https://aistudio.google.com/apikey
 
 ## Conventions
@@ -75,7 +75,7 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 
 ## Progress & decisions (as built — keep current)
 
-**Stage status:** ✅ Stages 1–4 complete (chunker, embedder, index store, retriever).
+**Stage status:** ✅ Stages 1–5 complete (chunker, embedder, index store, retriever, LLM).
 - Stage 1: `src/chunker.py`, `src/config.py`, `tests/unit/test_chunker.py`, deep-dive §9.
 - Stage 2: `src/embedder.py` (sentence-transformers `all-MiniLM-L6-v2`, L2-normalized,
   cached model), `tests/unit/test_embedder.py`, deep-dive §10. `config.EMBEDDING_MODEL`
@@ -89,9 +89,17 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   embeds query (same model), `index.search` top-k, skips `-1` padding, row-order join back to
   chunks), `tests/unit/test_retriever.py`, deep-dive §12. `config.TOP_K` now live.
 
-**Next: stage 5 (LLM — assemble prompt with retrieved chunks, call Gemini).**
+- Stage 5: `src/llm.py` (`build_prompt` pure → `answer` calls Gemini with `SYSTEM_INSTRUCTION`
+  grounding; empty-results short-circuit; cached client; key from `.env` via `python-dotenv`),
+  `tests/unit/test_llm.py`, deep-dive §13. `config.GEMINI_MODEL` live.
+
+**Next: stage 6 (CLI — wire `--index` and `--ask`).**
 
 **Decisions made along the way:**
+- **LLM model:** `gemini-2.0-flash` returns `429 limit: 0` (no free-tier quota on this key) —
+  switched to `gemini-2.5-flash`, which works on the free tier. Ollama (local) noted as a
+  future fallback but not wired in (the LLM is isolated behind `llm.py` + `config`, so swapping
+  is a one-line change).
 - **Deps:** `requirements.txt` (runtime) + `requirements-dev.txt` (dev). `uv` is *not* the
   dependency manager — it's only a task-runner invoked by the pyright pre-commit hook
   (`uv run pyright`), so `uv.lock` is an incidental artifact and is gitignored.
