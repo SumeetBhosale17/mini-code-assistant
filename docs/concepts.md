@@ -1,6 +1,8 @@
 # RAG Code Assistant — Concepts & Deep Dives
 
 > Living document. Each concept includes: the question, the answer, and the *justification* (why it matters).
+>
+> **Per-stage entry points:** [00](./00-core-problem.md) · [01](./01-pipeline.md) · [02](./02-chunking.md) · [03](./03-embeddings.md) · [04](./04-vector-store.md) · [05](./05-retrieval.md) · [06](./06-llm.md)
 
 ---
 
@@ -625,4 +627,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 7 — stage 5 LLM implementation deep-dive (Q40–Q45)*
+*Last updated: Session 8 — project complete (stage 6 CLI); per-stage docs/0X landing pages added*

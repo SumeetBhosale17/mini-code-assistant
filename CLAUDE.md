@@ -69,13 +69,14 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 - Type hints on every function.
 - `@dataclass` for the `CodeChunk` record (content, file_path, start_line, chunk_type, name).
 - Persist index to `.rag_index/` (gitignored): `vectors.faiss` + `metadata.json`.
-- Learning deep-dives live in `docs/concepts.md` (one section per stage, in why/how/when/what
-  form, plus running Q&A) — not separate `docs/0X-….md` files. Append the stage's Q&A there
-  when the stage is done.
+- The full why/how/when/what + Q&A lives in `docs/concepts.md` (the single source of truth;
+  one concept section + one implementation section per stage). Each `docs/0X-….md` is a short
+  per-stage landing page that links into `concepts.md` — keep new detail in `concepts.md`, not
+  duplicated in the 0X pages. Append the stage's Q&A when the stage is done.
 
 ## Progress & decisions (as built — keep current)
 
-**Stage status:** ✅ Stages 1–5 complete (chunker, embedder, index store, retriever, LLM).
+**Stage status:** ✅ Stages 1–6 complete — the assistant runs end to end (`--index` / `--ask`).
 - Stage 1: `src/chunker.py`, `src/config.py`, `tests/unit/test_chunker.py`, deep-dive §9.
 - Stage 2: `src/embedder.py` (sentence-transformers `all-MiniLM-L6-v2`, L2-normalized,
   cached model), `tests/unit/test_embedder.py`, deep-dive §10. `config.EMBEDDING_MODEL`
@@ -93,7 +94,12 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   grounding; empty-results short-circuit; cached client; key from `.env` via `python-dotenv`),
   `tests/unit/test_llm.py`, deep-dive §13. `config.GEMINI_MODEL` live.
 
-**Next: stage 6 (CLI — wire `--index` and `--ask`).**
+- Stage 6: `src/cli.py` (`argparse`; `--index` → offline chunk→embed→build→save; `--ask` →
+  online load→retrieve→answer→print with sources), `tests/unit/test_cli.py`. User-facing output
+  (`print`) lives here, not in the library.
+
+**Project complete.** Possible follow-ups (not started): optional Ollama provider switch,
+`tests/integration/` end-to-end test, ANN index + incremental indexing for scale.
 
 **Decisions made along the way:**
 - **LLM model:** `gemini-2.0-flash` returns `429 limit: 0` (no free-tier quota on this key) —
@@ -111,8 +117,8 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   provide a ready-to-paste PR title + body. Always `git checkout main && git pull` before
   branching for the next stage.
 - **Docs:** learning Q&A doc renamed `interview-qa.md` → `docs/concepts.md` (public repo).
-  ⚠️ `README.md` still links to non-existent `docs/0X-….md` files — reconcile later (point
-  them at `concepts.md` or create the files).
+  Per-stage `docs/0X-….md` landing pages created and linked from `README.md`; they point into
+  `concepts.md` (the detailed source of truth).
 
 ## First run
 
