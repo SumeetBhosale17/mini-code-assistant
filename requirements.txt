@@ -7,3 +7,5 @@ faiss-cpu>=1.7.4
 # Stage 5 — LLM reasoning. Google Gemini free tier.
 # Free API key (no credit card): https://aistudio.google.com/apikey
 google-genai>=0.3.0
+
+numpy

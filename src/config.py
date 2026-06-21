@@ -18,7 +18,10 @@ SKIP_DIRS: frozenset[str] = frozenset(
     }
 )
 
+# --- Stage 2: Embedding ------------------------------------------------------
+EMBEDDING_MODEL: str = "all-MiniLM-L6-v2"  # must be identical at index & query time
+EMBEDDING_DIM: int = 384  # all-MiniLM-L6-v2 output dim; keep in sync with the model
+
 # --- later stages (commented until then) ------------------------------------
-# EMBEDDING_MODEL: str = "all-MiniLM-L6-v2" # Must match between index & query
 # INDEX_DIR: str = ".rag_index"
 # GEMINI_MODEL: str = "gemini-2.0-flash"

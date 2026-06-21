@@ -318,6 +318,58 @@ The RAG pipeline is the *retrieval backbone* of these systems. Claude Code uses 
 
 ---
 
+## Section 10: Embedder — Implementation Deep Dive (stage 2)
+
+> Builds on Section 3. Section 3 is *why* embeddings/cosine; this is *how* `src/embedder.py` does it.
+
+### Q22. Mechanically, how does `all-MiniLM-L6-v2` turn a chunk into a 384-d vector?
+
+**Answer:** The text is tokenized, run through a 6-layer transformer (the "L6"), which produces one contextual vector per token; those token vectors are then **mean-pooled** into a single 384-dim sentence vector. `sentence-transformers` wraps tokenize → transformer → pool behind one `.encode()` call.
+
+**Justification:** You don't implement attention or pooling — but knowing the output is a *pooled average* explains why a very long chunk produces a blurry, washed-out vector (averaging dilutes specifics). That's the implementation-level reason stage 1's chunking matters so much.
+
+---
+
+### Q23. Why this model specifically?
+
+**Answer:** 384-dim, ~90MB, 6 layers → small and fast on **CPU**, no GPU/API/cost, quality good enough for code Q&A at this scale. Bigger models (e.g. `all-mpnet-base-v2`, 768-dim) score higher but are slower and heavier. The choice lives in `config.EMBEDDING_MODEL` (single source of truth).
+
+**Justification:** For a CPU-only learning project the speed/size win dominates. Swapping the model is a one-line config change — but you **must re-index** afterward (Q7), because the vector space changes.
+
+---
+
+### Q24. How do we make FAISS inner-product search equal cosine similarity, in code?
+
+**Answer:** `model.encode(..., normalize_embeddings=True)` returns unit-length vectors (‖v‖ = 1). For unit vectors, dot product **is** cosine. So when stage 3 uses FAISS `IndexFlatIP` (inner product), it's computing cosine for free. That's invariant #2, implemented in one kwarg.
+
+**Justification:** Normalizing once, at embed time, means stages 3–4 do zero extra math. (Cautionary tale: the misspelled `normalize_embedding` silently fell into `**kwargs` and raised — an unrecognized kwarg means *no normalization happened*.)
+
+---
+
+### Q25. Why load the model with a cached singleton (`lru_cache(maxsize=1)`)?
+
+**Answer:** The model is ~90MB and takes a second or two to load. `lru_cache(maxsize=1)` is a one-line lazy singleton: the first call to `_get_model()` loads it, every later call returns the same cached instance.
+
+**Justification:** This matters most in stage 4, where *every* query embeds text — you don't want to reload 90MB of weights per question.
+
+---
+
+### Q26. How does the code structurally enforce "same model for index and query" (invariant #1)?
+
+**Answer:** Both `embed_chunks` (indexing, many texts) and `embed_query` (querying, one text) funnel through the single `embed_texts`, which uses the one cached model. There is no second code path that *could* pick a different model.
+
+**Justification:** Q7 says *why* a model mismatch destroys retrieval; this is *how* you make the mistake structurally impossible — enforced by design, not by remembering.
+
+---
+
+### Q27. Why return `float32`, and why the `(0, dim)` empty case?
+
+**Answer:** FAISS requires `float32` vectors, so `.astype("float32")` guarantees the dtype before stage 3. And an empty input must still return a 2-D array of shape `(0, dim)` (via `np.empty((0, EMBEDDING_DIM), ...)`) — not a 0-d or `(0, 0)` array — so `index.add()` doesn't choke on a wrong-shaped input.
+
+**Justification:** Getting shape and dtype right *at the boundary* prevents confusing failures two stages downstream.
+
+---
+
 ## Appendix A — Dev Tooling, Testing & Git Workflow (reference)
 
 > Engineering-practice notes for this repo (not RAG concepts). Reflects the config actually in use.
@@ -417,4 +469,4 @@ docs: track CLAUDE.md and learning notes
 
 ---
 
-*Last updated: Session 3 — stage 1 chunker implementation deep-dive (Q16–Q21)*
+*Last updated: Session 4 — stage 2 embedder implementation deep-dive (Q22–Q27)*
