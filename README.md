@@ -4,8 +4,9 @@ A minimal Retrieval-Augmented Generation assistant that answers questions about 
 Point it at a repo, ask "where is the database connection initialized?", and it retrieves the
 relevant code and explains it — instead of hallucinating an answer.
 
-Built as a learning project to understand the RAG pipeline end to end. Deep dives for each
-stage live in [`docs/`](./docs) and are written as each stage is built.
+Built as a learning project to understand the RAG pipeline end to end. Each stage has a short
+deep-dive page in [`docs/`](./docs); the full why/how/when/what + Q&A lives in
+[`docs/concepts.md`](./docs/concepts.md).
 
 ## The core problem
 
@@ -17,6 +18,8 @@ You cannot just paste an entire codebase into an LLM prompt:
   you pay per token on every query.
 
 RAG's whole job is to select the relevant ~3–5 chunks and send only those.
+
+→ [`docs/00-core-problem.md`](./docs/00-core-problem.md)
 
 ## The pipeline
 
@@ -32,6 +35,8 @@ ONLINE  (every question)
 
 Two phases. The offline phase runs once — you never re-embed the whole repo per question.
 The online phase runs every time someone asks.
+
+→ [`docs/01-pipeline.md`](./docs/01-pipeline.md)
 
 ## Stages
 
