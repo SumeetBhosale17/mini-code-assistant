@@ -1,5 +1,7 @@
 # Mini Code Assistant (RAG)
 
+[![CI](https://github.com/SumeetBhosale17/mini-code-assistant/actions/workflows/ci.yml/badge.svg)](https://github.com/SumeetBhosale17/mini-code-assistant/actions/workflows/ci.yml)
+
 A minimal Retrieval-Augmented Generation assistant that answers questions about a codebase.
 Point it at a repo, ask "where is the database connection initialized?", and it retrieves the
 relevant code and explains it — instead of hallucinating an answer.
@@ -74,11 +76,48 @@ python -m src.cli
 python -m src.cli --ask "where is the database connection initialized?"
 ```
 
+## Demo
+
+```text
+$ python -m src.cli --ask "How are code files split into chunks?"
+
+Code files are split into chunks by reading the file's text and parsing it into an
+Abstract Syntax Tree (AST):
+  1. chunk_file reads the file into a string.                     (src/chunker.py:54)
+  2. chunk_source parses it into an AST; a SyntaxError yields []. (src/chunker.py:21)
+  3. It walks the top-level nodes, keeping function/class defs.   (src/chunker.py:37)
+  4. For each, it slices the *raw source* by line number —
+     decorators included, comments preserved.                    (src/chunker.py:39)
+  5. Each becomes a CodeChunk(content, file_path, line, type, name).
+
+Sources:
+    src/chunker.py:54  (0.63)
+    src/chunker.py:21  (0.51)
+    src/chunker.py:75  (0.51)
+```
+
+Bare `python -m src.cli` opens an interactive session that loads the model + index once,
+then answers many questions in a loop.
+
+## Evaluation
+
+A tiny retrieval eval checks that each question surfaces the right module in the top-k —
+no LLM call, so it's fast and deterministic:
+
+```bash
+python -m evals.run_eval
+```
+
+Current result: **Recall@5 = 6/6** — every question retrieves its expected file. Add or edit
+cases in [`evals/cases.json`](./evals/cases.json).
+
 ## Repo structure
 
 ```
 src/        one module per pipeline stage
-docs/       why/how/when/what deep dive per stage
+docs/       per-stage deep dives + concepts.md
 tests/      unit (per-module) + integration (end-to-end) tests
+evals/      tiny retrieval eval (recall@k)
+.github/    CI: ruff, pyright, pytest
 .rag_index/ generated index (gitignored)
 ```

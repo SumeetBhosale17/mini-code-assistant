@@ -99,9 +99,10 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   one-shot answer; **no flag → interactive `run_chat` REPL** that loads the index once and loops),
   `tests/unit/test_cli.py`. User-facing output (`print`) lives here, not in the library.
 
-**Project complete**, plus extras: similarity threshold + end-to-end integration tests.
-Possible follow-ups (not started): optional Ollama provider switch, ANN index + incremental
-indexing for scale.
+**Project complete**, plus extras: similarity threshold, end-to-end integration tests, an
+interactive CLI session (REPL), GitHub Actions CI (`.github/workflows/ci.yml`), and a tiny
+retrieval eval (`evals/`, recall@k). Possible follow-ups (not started): optional Ollama provider
+switch, ANN index + incremental indexing for scale.
 
 **Decisions made along the way:**
 - **LLM model:** `gemini-2.0-flash` returns `429 limit: 0` (no free-tier quota on this key) —
