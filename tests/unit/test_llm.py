@@ -18,4 +18,4 @@ def test_prompt_includes_question_and_context():
 def test_empty_results_message():
     from src.llm import answer
 
-    assert answer("anything", []) == "No relevant code found in the index."
+    assert answer("anything", []) == "No relevant code found."

@@ -29,6 +29,8 @@ METADATA_FILE: str = "metadata.json"  # chunk records, in the same row order
 
 # --- Stage 4: retrieval -----------------------------------------------------
 TOP_K: int = 5  # how many chunks to retrieve per query
+SIMILARITY_THRESHOLD: float = 0.3
+# drop matches below this cosine score (0.0 = keep all)
 
 # --- Stage 5: LLM -----------------------------------------------------------
 GEMINI_MODEL: str = "gemini-2.5-flash"

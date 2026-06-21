@@ -27,5 +27,6 @@ def test_returns_most_relevant_first():
 def test_handles_k_larger_than_index():
     chunks = _chunks()[:1]  # only one chunk
     index = build_index(embed_chunks(chunks))
-    results = retrieve("anything", index, chunks, k=5)
+    # min_score=0.0 isolates the padding logic from the threshold
+    results = retrieve("anything", index, chunks, k=5, min_score=0.0)
     assert len(results) == 1  # the -1 padding must be skipped

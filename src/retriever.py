@@ -20,6 +20,7 @@ def retrieve(
     index: faiss.Index,
     chunks: list[CodeChunk],
     k: int = config.TOP_K,
+    min_score: float = config.SIMILARITY_THRESHOLD,
 ) -> list[RetrievalResult]:
     """Embed the question (same model), search the index, map row-ids back to chunks."""
     query_vec = embed_query(question)  # shape (dim,)
@@ -27,6 +28,8 @@ def retrieve(
     results = []
     for idx, score in zip(ids[0], scores[0], strict=True):
         if idx < 0:  # FAISS pads with -1 when fewer than k vectors exists
+            continue
+        if score < min_score:  # below relevance bar -> treat as no match
             continue
         results.append(RetrievalResult(chunks[idx], float(score)))
 

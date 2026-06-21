@@ -47,7 +47,7 @@ def build_prompt(question: str, results: list[RetrievalResult]) -> str:
 def answer(question: str, results: list[RetrievalResult]) -> str:
     """Call Gemini with the grounded prompt; return the answer text."""
     if not results:
-        return "No relevant code found in the index."
+        return "No relevant code found."
 
     response = _get_client().models.generate_content(
         model=config.GEMINI_MODEL,
