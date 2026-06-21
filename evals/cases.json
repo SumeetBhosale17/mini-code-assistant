@@ -1,0 +1,8 @@
+[
+  {"question": "where are source files split into chunks?", "expect": "chunker.py"},
+  {"question": "how is text converted into embedding vectors?", "expect": "embedder.py"},
+  {"question": "where is the FAISS index built and saved to disk?", "expect": "index_store.py"},
+  {"question": "how are the top matching chunks retrieved for a query?", "expect": "retriever.py"},
+  {"question": "how is the prompt assembled and sent to the LLM?", "expect": "llm.py"},
+  {"question": "where are command-line arguments parsed?", "expect": "cli.py"}
+]
