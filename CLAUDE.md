@@ -23,6 +23,8 @@ I am building this to **understand** it, not to ship it fast. When helping me:
 - **Comments explain WHY, not WHAT.** `# normalize so cosine == dot product` is useful;
   `# loop over chunks` is noise.
 - **Keep modules small and independently testable.**
+- **Keep `CLAUDE.md` current.** After every completed stage or new decision, update this
+  file so it always reflects the as-built project.
 
 ## Architecture (the pipeline)
 
@@ -56,7 +58,7 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 
 ## Tech stack
 
-- Python 3.10+
+- Python 3.13+ (pinned via `requires-python` in `pyproject.toml`)
 - `sentence-transformers` — embedding model `all-MiniLM-L6-v2` (384-dim, ~90MB, fast)
 - `faiss-cpu` — vector index (`IndexFlatIP` for this scale; exact search is fine)
 - `google-genai` — LLM, model string `gemini-2.0-flash` (Google Gemini free tier; no budget)
@@ -67,8 +69,33 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 - Type hints on every function.
 - `@dataclass` for the `CodeChunk` record (content, file_path, start_line, chunk_type, name).
 - Persist index to `.rag_index/` (gitignored): `vectors.faiss` + `metadata.json`.
-- Each `docs/0X-….md` is written as we finish its stage — it's the learning record,
-  in why/how/when/what form, not API documentation.
+- Learning deep-dives live in `docs/concepts.md` (one section per stage, in why/how/when/what
+  form, plus running Q&A) — not separate `docs/0X-….md` files. Append the stage's Q&A there
+  when the stage is done.
+
+## Progress & decisions (as built — keep current)
+
+**Stage status:** ✅ Stage 1 (chunker) + ✅ Stage 2 (embedder) complete.
+- Stage 1: `src/chunker.py`, `src/config.py`, `tests/unit/test_chunker.py`, deep-dive §9.
+- Stage 2: `src/embedder.py` (sentence-transformers `all-MiniLM-L6-v2`, L2-normalized,
+  cached model), `tests/unit/test_embedder.py`, deep-dive §10. `config.EMBEDDING_MODEL`
+  + `EMBEDDING_DIM` now live — both invariants implemented here.
+
+**Next: stage 3 (FAISS index store).**
+
+**Decisions made along the way:**
+- **Deps:** `requirements.txt` (runtime) + `requirements-dev.txt` (dev). `uv` is *not* the
+  dependency manager — it's only a task-runner invoked by the pyright pre-commit hook
+  (`uv run pyright`), so `uv.lock` is an incidental artifact and is gitignored.
+- **Tooling:** `ruff` (lint) + `ruff format` + `pyright` (types) + `pytest`, wired via
+  `pre-commit`. Tool config lives in `pyproject.toml` (config only — no build-system/packaging).
+- **Tests:** `tests/unit/` now; `tests/integration/` later for the full pipeline. Add
+  `importmode = "importlib"` to the pytest config when integration tests arrive.
+- **Git:** branch per stage, **merge commits (no squash)**, one PR per stage. Always
+  `git checkout main && git pull` before branching for the next stage.
+- **Docs:** learning Q&A doc renamed `interview-qa.md` → `docs/concepts.md` (public repo).
+  ⚠️ `README.md` still links to non-existent `docs/0X-….md` files — reconcile later (point
+  them at `concepts.md` or create the files).
 
 ## First run
 
