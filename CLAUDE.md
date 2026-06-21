@@ -96,8 +96,8 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
   `tests/unit/test_llm.py`, deep-dive §13. `config.GEMINI_MODEL` live.
 
 - Stage 6: `src/cli.py` (`argparse`; `--index` → offline chunk→embed→build→save; `--ask` →
-  online load→retrieve→answer→print with sources), `tests/unit/test_cli.py`. User-facing output
-  (`print`) lives here, not in the library.
+  one-shot answer; **no flag → interactive `run_chat` REPL** that loads the index once and loops),
+  `tests/unit/test_cli.py`. User-facing output (`print`) lives here, not in the library.
 
 **Project complete**, plus extras: similarity threshold + end-to-end integration tests.
 Possible follow-ups (not started): optional Ollama provider switch, ANN index + incremental
