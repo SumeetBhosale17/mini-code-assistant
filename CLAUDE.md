@@ -75,13 +75,17 @@ Build them in order. Do not start stage N+1 until stage N runs and I understand 
 
 ## Progress & decisions (as built — keep current)
 
-**Stage status:** ✅ Stage 1 (chunker) + ✅ Stage 2 (embedder) complete.
+**Stage status:** ✅ Stage 1 (chunker) + ✅ Stage 2 (embedder) + ✅ Stage 3 (index store) complete.
 - Stage 1: `src/chunker.py`, `src/config.py`, `tests/unit/test_chunker.py`, deep-dive §9.
 - Stage 2: `src/embedder.py` (sentence-transformers `all-MiniLM-L6-v2`, L2-normalized,
   cached model), `tests/unit/test_embedder.py`, deep-dive §10. `config.EMBEDDING_MODEL`
   + `EMBEDDING_DIM` now live — both invariants implemented here.
+- Stage 3: `src/index_store.py` (FAISS `IndexFlatIP`, persisted to `.rag_index/` as
+  `vectors.faiss` + `metadata.json`, joined by row order via a shared `_paths` helper),
+  `tests/unit/test_index_store.py`, deep-dive §11. `config.INDEX_DIR/INDEX_FILE/METADATA_FILE`
+  now live.
 
-**Next: stage 3 (FAISS index store).**
+**Next: stage 4 (retriever — `index.search` + top-k).**
 
 **Decisions made along the way:**
 - **Deps:** `requirements.txt` (runtime) + `requirements-dev.txt` (dev). `uv` is *not* the
